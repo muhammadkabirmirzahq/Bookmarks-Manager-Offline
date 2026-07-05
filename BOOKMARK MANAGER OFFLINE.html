@@ -1,4 +1,631 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bookmark Manager Offline</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
+  <style>
+:root {
+      color-scheme: light;
+      --bg: #eef7fb;
+      --bg-accent: #d7f1f4;
+      --surface: #ffffff;
+      --surface-soft: #f4fbfd;
+      --border: #c8dfe6;
+      --border-strong: #90bac5;
+      --text: #122027;
+      --heading: #081a22;
+      --muted: #5f7380;
+      --soft: #e8f7fa;
+      --primary: #0b7285;
+      --primary-strong: #075b68;
+      --primary-soft: #d8f3f7;
+      --danger: #a61e4d;
+      --danger-soft: #fff0f4;
+      --focus: #0b7285;
+      --shadow: 0 18px 45px rgba(16, 57, 70, 0.12);
+      --shadow-soft: 0 10px 24px rgba(16, 57, 70, 0.08);
+      --radius: 8px;
+    }
+
+    :root[data-theme="warm"] {
+      --bg: #fff5e8;
+      --bg-accent: #ffe2bd;
+      --surface: #fffdf8;
+      --surface-soft: #fff7ea;
+      --border: #efd3ad;
+      --border-strong: #d89a57;
+      --text: #2d2117;
+      --heading: #1f1309;
+      --muted: #7a6650;
+      --soft: #fff0d6;
+      --primary: #c25b22;
+      --primary-strong: #964415;
+      --primary-soft: #ffe5cc;
+      --danger: #a61e1e;
+      --danger-soft: #fff0eb;
+      --focus: #c25b22;
+      --shadow: 0 18px 45px rgba(105, 62, 14, 0.14);
+      --shadow-soft: 0 10px 24px rgba(105, 62, 14, 0.09);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 15px;
+      line-height: 1.45;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, var(--bg-accent), transparent 34rem),
+        linear-gradient(180deg, var(--bg), #fff 34rem);
+      min-height: 100vh;
+    }
+
+    main {
+      width: min(1100px, calc(100% - 32px));
+      margin: 28px auto 52px;
+    }
+
+    h1,
+    h2,
+    h3 {
+      color: var(--heading);
+      line-height: 1.2;
+      margin: 0;
+      font-weight: 700;
+    }
+
+    h1 {
+      font-size: 34px;
+      letter-spacing: 0;
+      margin-bottom: 6px;
+    }
+
+    h2 {
+      font-size: 20px;
+    }
+
+    a {
+      color: var(--primary-strong);
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 1px solid var(--border-strong);
+      background: var(--surface);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
+      transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease;
+    }
+
+    button:hover {
+      background: var(--primary-soft);
+      border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 9px 10px;
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+    }
+
+    input:hover,
+    select:hover,
+    textarea:hover {
+      border-color: var(--border-strong);
+    }
+
+    textarea {
+      min-height: 68px;
+      resize: vertical;
+    }
+
+    label {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 5px;
+      color: var(--heading);
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      align-items: flex-start;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-bottom: 22px;
+      background: color-mix(in srgb, var(--surface) 88%, var(--primary-soft));
+      box-shadow: var(--shadow);
+    }
+
+    .version,
+    .meta,
+    .hint,
+    .empty {
+      color: var(--muted);
+    }
+
+    .version {
+      margin: 0;
+      max-width: 42rem;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+      align-items: center;
+      max-width: 560px;
+    }
+
+    .theme-control {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .theme-label {
+      padding: 0 6px 0 8px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .theme-btn {
+      border-radius: 999px;
+      padding: 6px 10px;
+      border-color: transparent;
+      box-shadow: none;
+    }
+
+    .theme-btn[aria-pressed="true"] {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      background: var(--surface);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .form-actions,
+    .list-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .danger {
+      color: var(--danger);
+      border-color: color-mix(in srgb, var(--danger) 55%, var(--border));
+      background: var(--danger-soft);
+    }
+
+    .danger:hover {
+      background: color-mix(in srgb, var(--danger-soft) 75%, #fff);
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+
+    #saveBtn,
+    #replaceImportBtn,
+    #mergeImportBtn,
+    #applyUrlNormalizationBtn {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    #saveBtn:hover,
+    #replaceImportBtn:hover,
+    #mergeImportBtn:hover,
+    #applyUrlNormalizationBtn:hover {
+      background: var(--primary-strong);
+      border-color: var(--primary-strong);
+    }
+
+    .searchbar {
+      display: grid;
+      grid-template-columns: 1fr 180px 180px;
+      gap: 12px;
+      margin: 12px 0 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      background: var(--surface);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .summary {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+      padding: 0 2px;
+      color: var(--muted);
+    }
+
+    details.category {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+      margin-bottom: 12px;
+      background: var(--surface);
+      box-shadow: var(--shadow-soft);
+    }
+
+    details.category:last-child {
+      border-bottom: 1px solid var(--border);
+    }
+
+    details.category > summary {
+      cursor: pointer;
+      color: var(--heading);
+      font-weight: 700;
+      font-size: 18px;
+      list-style-position: outside;
+      padding: 2px;
+    }
+
+    .count {
+      color: var(--muted);
+      font-weight: 400;
+      font-size: 14px;
+    }
+
+    .bookmark-list {
+      list-style: none;
+      padding: 10px 0 0 0;
+      margin: 0;
+    }
+
+    .bookmark {
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      margin-top: 10px;
+      background: var(--surface-soft);
+    }
+
+    .bookmark:first-child {
+      margin-top: 0;
+    }
+
+    .bookmark-title {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .bookmark-url {
+      overflow-wrap: anywhere;
+    }
+
+    .description {
+      margin: 4px 0;
+      color: var(--text);
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin: 7px 0 10px;
+    }
+
+    .tag {
+      border: 1px solid var(--border);
+      background: var(--soft);
+      border-radius: 999px;
+      padding: 2px 8px;
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .small {
+      font-size: 13px;
+    }
+
+    .preview {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin: 0 0 18px;
+      padding: 16px;
+      background: var(--surface);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .preview-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin: 12px 0;
+    }
+
+    .preview-box {
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 12px;
+      background: var(--surface-soft);
+      max-height: 260px;
+      overflow: auto;
+    }
+
+    .preview-box ul {
+      margin-top: 6px;
+      padding-left: 20px;
+    }
+
+    .preview-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    #importFile {
+      max-width: 240px;
+      padding: 7px 8px;
+      background: var(--surface);
+    }
+
+    @media (max-width: 800px) {
+      main {
+        width: min(100% - 20px, 1100px);
+        margin-top: 14px;
+      }
+
+      .top,
+      .grid {
+        display: block;
+      }
+
+      .toolbar {
+        justify-content: flex-start;
+        margin-top: 12px;
+        max-width: none;
+      }
+
+      .panel {
+        margin-bottom: 18px;
+      }
+
+      .searchbar {
+        grid-template-columns: 1fr;
+      }
+
+      .preview-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 520px) {
+      h1 {
+        font-size: 28px;
+      }
+
+      .top {
+        padding: 14px;
+      }
+
+      .theme-control {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .toolbar button,
+      #importFile {
+        width: 100%;
+      }
+    }
+
+  </style>
+</head>
+<body>
+  <main>
+    <header class="top">
+      <div>
+        <h1>Bookmarks</h1>
+        <p class="version">Version 1. Offline local bookmark manager.</p>
+      </div>
+      <div class="toolbar" aria-label="Backup tools">
+        <div class="theme-control" aria-label="Color theme">
+          <span class="theme-label small">Theme</span>
+          <button type="button" id="coolThemeBtn" class="theme-btn" data-theme-option="cool" aria-pressed="true">Cool</button>
+          <button type="button" id="warmThemeBtn" class="theme-btn" data-theme-option="warm" aria-pressed="false">Warm</button>
+        </div>
+        <button type="button" id="exportHtmlBtn">Export HTML</button>
+        <button type="button" id="exportJsonBtn">Export JSON</button>
+        <button type="button" id="cleanupBtn">Cleanup Preview</button>
+        <button type="button" id="deleteAllBtn">Delete All</button>
+        <label class="small" for="importFile">Import JSON or HTML</label>
+        <input id="importFile" type="file" accept="application/json,.json,text/html,.html,.htm">
+      </div>
+    </header>
+
+    <section class="grid">
+      <aside class="panel" aria-labelledby="formTitle">
+        <h2 id="formTitle">Add Bookmark</h2>
+        <form id="bookmarkForm" class="form-grid" autocomplete="off">
+          <input type="hidden" id="bookmarkId">
+          <div>
+            <label for="title">Title</label>
+            <input id="title" required maxlength="160" placeholder="Example Docs">
+          </div>
+          <div>
+            <label for="url">URL</label>
+            <input id="url" required type="url" placeholder="https://example.com">
+          </div>
+          <div>
+            <label for="category">Category</label>
+            <input id="category" required maxlength="80" list="categoryOptions" placeholder="Work">
+            <datalist id="categoryOptions"></datalist>
+          </div>
+          <div>
+            <label for="tags">Tags</label>
+            <input id="tags" maxlength="240" placeholder="docs, reference, frontend">
+            <p class="hint small">Separate tags with commas.</p>
+            <div id="tagSuggestions" class="hint small"></div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" id="saveBtn">Add Bookmark</button>
+            <button type="button" id="cancelEditBtn" class="hidden">Cancel Edit</button>
+          </div>
+        </form>
+      </aside>
+
+      <section aria-labelledby="listTitle">
+        <h2 id="listTitle">Library</h2>
+        <div class="searchbar" role="search">
+          <div>
+            <label for="search">Search title, tags, or categories</label>
+            <input id="search" placeholder="Search bookmarks">
+          </div>
+          <div>
+            <label for="categoryFilter">Category</label>
+            <select id="categoryFilter">
+              <option value="">All categories</option>
+            </select>
+          </div>
+          <div>
+            <label for="tagFilter">Tag</label>
+            <select id="tagFilter">
+              <option value="">All tags</option>
+            </select>
+          </div>
+        </div>
+        <section id="importPreview" class="preview hidden" aria-labelledby="previewTitle" tabindex="-1">
+          <h2 id="previewTitle">Import Preview</h2>
+          <p id="previewSummary" class="meta"></p>
+          <div class="preview-grid">
+            <div class="preview-box">
+              <h3>Tree View</h3>
+              <div id="previewTree"></div>
+            </div>
+            <div class="preview-box">
+              <h3>Flat List</h3>
+              <div id="previewFlat"></div>
+            </div>
+            <div class="preview-box">
+              <h3>Category Breakdown</h3>
+              <div id="previewBreakdown"></div>
+            </div>
+          </div>
+          <div class="preview-actions">
+            <button type="button" id="replaceImportBtn">Replace Library</button>
+            <button type="button" id="mergeImportBtn">Merge Into Library</button>
+            <button type="button" id="cancelImportBtn">Cancel Import</button>
+          </div>
+        </section>
+        <section id="categoryDeletePreview" class="preview hidden" aria-labelledby="categoryDeleteTitle" tabindex="-1">
+          <h2 id="categoryDeleteTitle">Category Delete Preview</h2>
+          <p id="categoryDeleteSummary" class="meta"></p>
+          <div id="categoryDeleteList" class="preview-box"></div>
+          <div class="preview-actions">
+            <button type="button" id="confirmCategoryDeleteBtn" class="danger">Confirm Delete Category</button>
+            <button type="button" id="cancelCategoryDeleteBtn">Cancel</button>
+          </div>
+        </section>
+        <section id="cleanupPreview" class="preview hidden" aria-labelledby="cleanupTitle" tabindex="-1">
+          <h2 id="cleanupTitle">Cleanup Preview</h2>
+          <p class="meta">Suggestions only. No cleanup is applied until you confirm a specific action.</p>
+          <div class="preview-grid">
+            <div class="preview-box">
+              <h3>Duplicate URLs</h3>
+              <div id="duplicatePreview"></div>
+            </div>
+            <div class="preview-box">
+              <h3>Category Merge Suggestions</h3>
+              <div id="categoryMergePreview"></div>
+            </div>
+            <div class="preview-box">
+              <h3>Review Suggested Categories</h3>
+              <div id="junkCategoryPreview"></div>
+            </div>
+          </div>
+          <div class="preview-box">
+            <h3>URL Normalization Suggestions</h3>
+            <div id="urlNormalizePreview"></div>
+          </div>
+          <div class="preview-actions">
+            <button type="button" id="applyUrlNormalizationBtn">Apply URL Normalization</button>
+            <button type="button" id="cancelCleanupBtn">Close Cleanup Preview</button>
+          </div>
+        </section>
+        <div class="summary">
+          <span id="stats">0 bookmarks</span>
+          <span id="backupStatus" role="status" aria-live="polite">Stored locally in this browser.</span>
+        </div>
+        <div id="categories"></div>
+      </section>
+    </section>
+  </main>
+  <script type="module">
 const STORAGE_KEY = "bookmark-manager-v1";
+const THEME_STORAGE_KEY = "bookmark-manager-offline-theme";
 const DB_NAME = "bookmark-manager-v1-db";
 const DB_VERSION = 1;
 const MAX_FLAT_PREVIEW = 100;
@@ -32,6 +659,8 @@ const els = {
   exportJsonBtn: document.getElementById("exportJsonBtn"),
   cleanupBtn: document.getElementById("cleanupBtn"),
   deleteAllBtn: document.getElementById("deleteAllBtn"),
+  coolThemeBtn: document.getElementById("coolThemeBtn"),
+  warmThemeBtn: document.getElementById("warmThemeBtn"),
   importFile: document.getElementById("importFile"),
   backupStatus: document.getElementById("backupStatus"),
   tagSuggestions: document.getElementById("tagSuggestions"),
@@ -329,6 +958,31 @@ async function applyApprovedChange(reason, nextBookmarks) {
 
 function setStatus(message) {
   els.backupStatus.textContent = message;
+}
+
+function getSavedTheme() {
+  try {
+    return localStorage.getItem(THEME_STORAGE_KEY) === "warm" ? "warm" : "cool";
+  } catch (error) {
+    return "cool";
+  }
+}
+
+function applyTheme(theme) {
+  const selectedTheme = theme === "warm" ? "warm" : "cool";
+  document.documentElement.dataset.theme = selectedTheme;
+  els.coolThemeBtn.setAttribute("aria-pressed", selectedTheme === "cool" ? "true" : "false");
+  els.warmThemeBtn.setAttribute("aria-pressed", selectedTheme === "warm" ? "true" : "false");
+}
+
+function saveTheme(theme) {
+  const selectedTheme = theme === "warm" ? "warm" : "cool";
+  applyTheme(selectedTheme);
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, selectedTheme);
+  } catch (error) {
+    // Theme persistence is optional; the app still works without localStorage.
+  }
 }
 
 function makeTreeNode(name) {
@@ -1071,6 +1725,12 @@ els.exportHtmlBtn.addEventListener("click", exportHtml);
 els.exportJsonBtn.addEventListener("click", exportJson);
 els.cleanupBtn.addEventListener("click", renderCleanupPreview);
 els.deleteAllBtn.addEventListener("click", deleteAllBookmarks);
+els.coolThemeBtn.addEventListener("click", function () {
+  saveTheme("cool");
+});
+els.warmThemeBtn.addEventListener("click", function () {
+  saveTheme("warm");
+});
 els.importFile.addEventListener("change", function () {
   importBackup(els.importFile.files[0]);
 });
@@ -1090,8 +1750,14 @@ els.cancelCleanupBtn.addEventListener("click", function () {
   setStatus("Cleanup preview closed.");
 });
 
+applyTheme(getSavedTheme());
 await load();
 render(true);
 renderTagSuggestions();
 
+
+
+  </script>
+</body>
+</html>
 
