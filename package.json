@@ -1,0 +1,6 @@
+{
+  "scripts": {
+    "test": "node tests/static-hardening.test.mjs"
+  },
+  "devDependencies": {}
+}
